@@ -2,12 +2,6 @@
 
 Welcome to the SmartUI SDK sample for K6. This repository demonstrates how to integrate SmartUI visual regression testing with K6 browser automation.
 
-## Prerequisites
-
-- K6 installed (see [K6 Installation Guide](https://k6.io/docs/get-started/installation/))
-- LambdaTest account credentials (for Cloud tests)
-- Node.js installed (for SmartUI CLI)
-
 ## Repository Structure
 
 ```
@@ -17,31 +11,101 @@ smartui-k6-sample/
 └── smartui-web.json           # SmartUI config (create with npx smartui config:create)
 ```
 
-## Quick Start
+## 1. Prerequisites and Environment Setup
 
-### Cloud Execution
+### Prerequisites
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/LambdaTest/smartui-k6-sample
-   cd smartui-k6-sample
-   ```
+- K6 installed (see [K6 Installation Guide](https://k6.io/docs/get-started/installation/))
+- LambdaTest account credentials
+- Node.js installed (for SmartUI CLI, optional)
 
-2. **Set your credentials:**
-   ```bash
-   export LT_USERNAME='your_username'
-   export LT_ACCESS_KEY='your_access_key'
-   ```
+### Install K6
 
-3. **Create SmartUI config (optional):**
-   ```bash
-   npx smartui config:create smartui-web.json
-   ```
+**macOS:**
+```bash
+brew install k6
+```
 
-4. **Run the test:**
-   ```bash
-   K6_BROWSER_ENABLED=true k6 run k6-smartui.js
-   ```
+**Linux:**
+```bash
+sudo gpg -k
+sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+sudo apt-get update
+sudo apt-get install k6
+```
+
+**Windows:**
+Download the installer from [K6 Installation Guide](https://k6.io/docs/get-started/installation/)
+
+**Verify installation:**
+```bash
+k6 version
+```
+
+### Environment Setup
+
+```bash
+export LT_USERNAME='your_username'
+export LT_ACCESS_KEY='your_access_key'
+```
+
+## 2. Initial Setup and Dependencies
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/LambdaTest/smartui-k6-sample
+cd smartui-k6-sample
+```
+
+### Create SmartUI Configuration (Optional)
+
+For K6 browser automation with hooks, the SmartUI config is optional. The `smartUIProjectName` in capabilities is used instead.
+
+```bash
+npx smartui config:create smartui-web.json
+```
+
+## 3. Steps to Integrate Screenshot Commands into Codebase
+
+The SmartUI screenshot function is already implemented in the repository using hooks-based integration.
+
+**Test File** (`k6-smartui.js`):
+```javascript
+import { chromium } from 'k6/experimental/browser';
+
+await page.goto("https://www.lambdatest.com");
+
+// Take screenshot using SmartUI hooks
+await captureSmartUIScreenshot(page, "screenshot");
+
+async function captureSmartUIScreenshot(page, screenshotName) {
+  await page.evaluate(_ => {}, `lambdatest_action: ${JSON.stringify({ 
+    action: "smartui.takeScreenshot", 
+    arguments: { screenshotName: screenshotName } 
+  })}`);
+}
+```
+
+**Note**: 
+- The code is already configured and ready to use
+- You can modify the URL and screenshot name if needed
+- Update `smartUIProjectName` in capabilities to match your SmartUI project name
+- The test uses K6 browser automation with hooks-based SmartUI integration
+
+## 4. Execution and Commands
+
+Execute visual regression tests on SmartUI using the following command:
+
+```bash
+K6_BROWSER_ENABLED=true k6 run k6-smartui.js
+```
+
+**Note**: 
+- `K6_BROWSER_ENABLED=true` is required to enable browser automation in K6
+- Navigate to the [LambdaTest dashboard](https://automation.lambdatest.com/build) to view the running test
+- Visit your SmartUI project to see captured screenshots
 
 ## Test Files
 
@@ -62,32 +126,19 @@ smartui-k6-sample/
 
 ### Capabilities
 
-The test files include capabilities configuration for LambdaTest Cloud:
+The test files include capabilities configuration for LambdaTest Cloud. Update `smartUIProjectName` to match your SmartUI project name:
 
 ```javascript
 const capabilities = {
   "browserName": "Chrome",
   "browserVersion": "latest",
   "LT:Options": {
-    "platform": "MacOS Ventura",
-    "build": "K6 Build",
-    "name": "K6 SmartUI test",
     "user": __ENV.LT_USERNAME,
     "accessKey": __ENV.LT_ACCESS_KEY,
-    "smartUIProjectName": "K6_Test_Sample",
+    "smartUIProjectName": "K6_Test_Sample",  // Update this to match your project
   }
 };
 ```
-
-### SmartUI Screenshot
-
-To take a screenshot, use the `captureSmartUIScreenshot` function:
-
-```javascript
-await captureSmartUIScreenshot(page, "screenshot");
-```
-
-This function uses the `smartui.takeScreenshot` action via K6's browser automation hooks.
 
 ## View Results
 
