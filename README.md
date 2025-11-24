@@ -140,16 +140,218 @@ const capabilities = {
 };
 ```
 
+## Best Practices
+
+### Screenshot Naming
+
+- Use descriptive, unique names for each screenshot
+- Include scenario and state information
+- Avoid special characters
+- Use consistent naming conventions
+
+### When to Take Screenshots
+
+- After page loads
+- After user interactions
+- At different stages of user journeys
+- After state changes
+
+### K6-Specific Tips
+
+- Always set `K6_BROWSER_ENABLED=true` environment variable
+- Use `page.waitForLoadState()` before screenshots
+- Handle errors gracefully in scenarios
+- Use proper VU (Virtual User) configuration
+
+### Example: Screenshot with Wait
+
+```javascript
+import { chromium } from 'k6/experimental/browser';
+
+export default async function () {
+  const browser = chromium.launch();
+  const page = browser.newPage();
+  
+  await page.goto('https://www.lambdatest.com');
+  await page.waitForLoadState('networkidle');
+  
+  await captureSmartUIScreenshot(page, "homepage");
+  
+  browser.close();
+}
+```
+
+## Common Use Cases
+
+### Multiple Scenarios
+
+```javascript
+import { chromium } from 'k6/experimental/browser';
+
+export const options = {
+  scenarios: {
+    ui: {
+      executor: 'shared-iterations',
+      options: {
+        browser: {
+          type: 'chromium',
+        },
+      },
+    },
+  },
+};
+
+export default async function () {
+  const browser = chromium.launch();
+  const page = browser.newPage();
+  
+  await page.goto('https://www.lambdatest.com');
+  await captureSmartUIScreenshot(page, "homepage");
+  
+  browser.close();
+}
+```
+
+### Performance Testing with Visual Validation
+
+```javascript
+import { check } from 'k6';
+import { chromium } from 'k6/experimental/browser';
+
+export default async function () {
+  const browser = chromium.launch();
+  const page = browser.newPage();
+  
+  const response = await page.goto('https://www.lambdatest.com');
+  check(response, {
+    'status is 200': (r) => r.status() === 200,
+  });
+  
+  await captureSmartUIScreenshot(page, "homepage-performance-test");
+  
+  browser.close();
+}
+```
+
+## CI/CD Integration
+
+### GitHub Actions Example
+
+```yaml
+name: K6 SmartUI Tests
+
+on: [push, pull_request]
+
+jobs:
+  visual-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install K6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install k6
+      
+      - name: Run K6 with SmartUI
+        env:
+          K6_BROWSER_ENABLED: true
+          LT_USERNAME: ${{ secrets.LT_USERNAME }}
+          LT_ACCESS_KEY: ${{ secrets.LT_ACCESS_KEY }}
+        run: |
+          k6 run k6-smartui.js
+```
+
+## Troubleshooting
+
+### Issue: `K6_BROWSER_ENABLED is not set`
+
+**Solution**: Always set the environment variable:
+```bash
+export K6_BROWSER_ENABLED=true
+k6 run k6-smartui.js
+```
+
+### Issue: Screenshots not captured
+
+**Solution**:
+1. Verify `LT_USERNAME` and `LT_ACCESS_KEY` are set
+2. Check `smartUIProjectName` in capabilities matches your project
+3. Ensure K6 browser automation is enabled
+4. Wait for page to load before taking screenshots
+
+### Issue: `Unauthorized` error
+
+**Solution**:
+1. Verify LambdaTest credentials are correct
+2. Check credentials in [LambdaTest Profile Settings](https://accounts.lambdatest.com/profile)
+3. Ensure no extra spaces in environment variables
+
+### Issue: Browser automation not working
+
+**Solution**:
+1. Verify K6 version supports browser automation (v0.43.0+)
+2. Ensure `K6_BROWSER_ENABLED=true` is set
+3. Check K6 installation: `k6 version`
+
+## Configuration Tips
+
+### Capabilities Configuration
+
+Update capabilities in your test file:
+```javascript
+const capabilities = {
+  "browserName": "Chrome",
+  "browserVersion": "latest",
+  "LT:Options": {
+    "user": __ENV.LT_USERNAME,
+    "accessKey": __ENV.LT_ACCESS_KEY,
+    "platform": "Windows 10",
+    "smartUIProjectName": "Your_Project_Name",  // Update this
+    "smartUIBaseline": false  // Set to false to update baseline
+  }
+};
+```
+
+### VU Configuration
+
+Configure virtual users appropriately:
+```javascript
+export const options = {
+  vus: 1,  // Number of virtual users
+  iterations: 1,  // Number of iterations
+  scenarios: {
+    ui: {
+      executor: 'shared-iterations',
+      options: {
+        browser: {
+          type: 'chromium',
+        },
+      },
+    },
+  },
+};
+```
+
 ## View Results
 
 After running the tests, visit your [LambdaTest dashboard](https://automation.lambdatest.com/build) to view the running test and SmartUI project to see captured screenshots.
 
-## More Information
+## Additional Resources
 
-For detailed onboarding instructions, see the [SmartUI K6 Onboarding Guide](https://www.lambdatest.com/support/docs/smartui-onboarding-k6/).
+- [SmartUI K6 Onboarding Guide](https://www.lambdatest.com/support/docs/smartui-onboarding-k6/)
+- [K6 Documentation](https://k6.io/docs/)
+- [K6 Browser Automation](https://k6.io/docs/using-k6/browser/)
+- [LambdaTest K6 Documentation](https://www.lambdatest.com/support/docs/k6-testing/)
+- [SmartUI Dashboard](https://smartui.lambdatest.com/)
+- [LambdaTest Community](https://community.lambdatest.com/)
 
 ## Notes
 
 - K6 browser automation requires `K6_BROWSER_ENABLED=true` environment variable
 - The repository uses hooks-based SmartUI integration (not SDK-based)
 - Screenshots are captured using `smartui.takeScreenshot` action via `page.evaluate()`
+- K6 browser automation is available in K6 v0.43.0 and later
